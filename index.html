@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mental Math</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <style>
+        :root {
+            --bg: #0f1226;
+            --card: #1c1f4a;
+            --accent: #6cf2c2;
+            --wrong: #ff6b6b;
+            --right: #4cd964;
+            --text: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(160deg, #141852, #070b2d);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* SPLASH */
+        #splash {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #6a5cff, #4cd964);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2em;
+            text-align: center;
+            z-index: 10;
+            transition: opacity 0.6s ease;
+        }
+
+        #splash small {
+            font-size: 0.45em;
+            opacity: 0.9;
+            margin-top: 15px;
+        }
+
+        #copyleft {
+            position: absolute;
+            bottom: 24px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.45em;
+            opacity: 0.85;
+        }
+
+        /* APP */
+        #app {
+            width: 100%;
+            max-width: 390px;
+            padding: 16px;
+            display: none;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        #problem {
+            font-size: 2.4em;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #answer {
+            font-size: 2em;
+            text-align: center;
+            margin: 10px 0;
+            min-height: 1.2em;
+        }
+
+        #feedback {
+            height: 1.6em;
+            text-align: center;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        /* KEYPAD */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .key {
+            background: #2b2f78;
+            border-radius: 14px;
+            padding: 18px;
+            font-size: 1.4em;
+            text-align: center;
+            user-select: none;
+            transition: transform 0.05s ease, background 0.2s;
+        }
+
+        .key:active {
+            transform: scale(0.95);
+            background: #3a3fb0;
+        }
+
+        .key.back {
+            grid-column: span 3;
+            background: #ff9f43;
+            color: #000;
+            font-weight: 600;
+        }
+
+        .right {
+            color: var(--right);
+        }
+
+        .wrong {
+            color: var(--wrong);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="splash">
+        🧠 Mental Math
+        <small>Train your brain</small>
+        <div id="copyleft">Copyleft © Sean Lane Fuller</div>
+    </div>
+
+    <div id="app">
+        <div class="card">
+            <div id="problem">?</div>
+            <div id="answer"></div>
+            <div id="feedback"></div>
+
+            <div class="keypad">
+                <div class="key" onclick="press(1)">1</div>
+                <div class="key" onclick="press(2)">2</div>
+                <div class="key" onclick="press(3)">3</div>
+                <div class="key" onclick="press(4)">4</div>
+                <div class="key" onclick="press(5)">5</div>
+                <div class="key" onclick="press(6)">6</div>
+                <div class="key" onclick="press(7)">7</div>
+                <div class="key" onclick="press(8)">8</div>
+                <div class="key" onclick="press(9)">9</div>
+                <div class="key" onclick="press('-')">-</div>
+                <div class="key" onclick="press(0)">0</div>
+                <div class="key back" onclick="backspace()">⌫ Backspace</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ops = ['+', '-', '×', '÷'];
+        let current = {};
+        let input = '';
+        let locked = false;
+
+        window.onload = () => {
+            setTimeout(() => {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    app.style.display = 'block';
+                    newProblem();
+                }, 600);
+            }, 1400);
+        };
+
+        function rand(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function newProblem() {
+            locked = false;
+            input = '';
+            feedback.textContent = '';
+            answer.textContent = '';
+
+            let op = ops[rand(0, ops.length - 1)];
+            let a = rand(1, 20);
+            let b = rand(1, 10);
+
+            if (op === '÷') {
+                a = b * rand(1, 10);
+            }
+
+            current = { a, b, op };
+            problem.textContent = `${a} ${op} ${b}`;
+        }
+
+        function press(n) {
+            if (locked) return;
+            if (n === '-' && input.length > 0) return;
+            input += n;
+            answer.textContent = input;
+            check();
+        }
+
+        function backspace() {
+            if (locked) return;
+            input = input.slice(0, -1);
+            answer.textContent = input;
+        }
+
+        function check() {
+            let correct;
+            switch (current.op) {
+                case '+': correct = current.a + current.b; break;
+                case '-': correct = current.a - current.b; break;
+                case '×': correct = current.a * current.b; break;
+                case '÷': correct = current.a / current.b; break;
+            }
+
+            if (input === '') return;
+
+            if (Number(input) === correct) {
+                endRound(true, correct);
+            } else if (input.length >= correct.toString().length) {
+                endRound(false, correct);
+            }
+        }
+
+        function endRound(success, correct) {
+            locked = true;
+            feedback.textContent = success
+                ? '✅ Correct!'
+                : `❌ ${correct} was the right answer`;
+            feedback.className = success ? 'right' : 'wrong';
+
+            setTimeout(newProblem, 2000);
+        }
+    </script>
+
+</body>
+
+</html>
