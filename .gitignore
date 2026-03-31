@@ -1,0 +1,16 @@
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node (in case it's used later)
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
